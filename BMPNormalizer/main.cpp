@@ -53,14 +53,27 @@ typedef unsigned char BYTE;
 //0-255 color codes
 struct Color
 {
-
-	int r;
-	int g;
-	int b;
+	unsigned int c;
+	void Set(unsigned char r, unsigned char g, unsigned char b)
+	{
+		c = ((r << 16u) | (g << 8u) | b );
+	}
+	constexpr unsigned char GetR() const
+	{
+		return (c >> 16u) & 0xFFu;
+	}
+	constexpr unsigned char GetG() const
+	{
+		return (c >> 8u) & 0xFFu;
+	}
+	constexpr unsigned char GetB() const
+	{
+		return c & 0xFFu;
+	}
 	//add an ==, != operator
 	bool operator==(const Color& rhs) const
 	{
-		return (r == rhs.r && g == rhs.g && b == rhs.b);
+		return c == rhs.c;
 	}
 	bool operator!=(const Color& rhs) const
 	{
@@ -124,12 +137,10 @@ void NormalizeBMP(std::string infile, std::string outfile, Color backgroundColor
 		for (int x = 0; x < width; x++)
 		{
 			Color c;
-			c.r = bitmapFile.get();
-			c.g = bitmapFile.get();
-			c.b = bitmapFile.get();
+			c.Set(bitmapFile.get(), bitmapFile.get(), bitmapFile.get());
 			pColors[(yStart * width) + x] = c;
 			if (spitOutDebug) {
-				std::string m = "Debug, first color raw: " + std::to_string(c.r) + " " + std::to_string(c.g) + " " + std::to_string(c.b);
+				std::string m = "Debug, first color raw: " + std::to_string(c.GetR()) + " " + std::to_string(c.GetG()) + " " + std::to_string(c.GetB());
 				log(m);
 				spitOutDebug = false; //so we don't spam a million messages
 			}
@@ -165,36 +176,35 @@ void NormalizeBMP(std::string infile, std::string outfile, Color backgroundColor
 	BYTE * fileInformation = new BYTE[bitmapInfoHeader.biSizeImage];
 	int atIndex = 0;
 	bool spitOutMoreDebug = true;
+	bool spitOutMoreDebug2 = true;
+	int skips = 0;
+	int hits = 0;
 	for (int i = 0; i < endPoint; i++)
 	{
 		if (pColors[i] == backgroundColor)
 		{
-			char r = (char)pColors->r;
-			fileInformation[atIndex++] = r;
-			char g = (char)pColors->g;
-			fileInformation[atIndex++] = g;
-			char b = (char)pColors->b;
-			fileInformation[atIndex++] = b;
+			fileInformation[atIndex++] = pColors->GetR();
+			fileInformation[atIndex++] = pColors->GetG();
+			fileInformation[atIndex++] = pColors->GetB();
+			skips++;
 			if (spitOutMoreDebug)
 			{
-				std::string m = std::to_string(r) + std::to_string(g) + std::to_string(b);
-				log("Debug image info, what we pulled from color: " + m);
+				std::string m = std::to_string(pColors->GetR()) + std::to_string(pColors->GetG()) + std::to_string(pColors->GetB());
+				log("Debug image info, what we pulled from pColors: " + m);
 				spitOutMoreDebug = false;
 			}
 		}
 		else
 		{
-			char r = (char)replaceWith.r;
-			fileInformation[atIndex++] = r;
-			char g = (char)replaceWith.g;
-			fileInformation[atIndex++] = g;
-			char b = (char)replaceWith.b;
-			fileInformation[atIndex++] = b;
-			if (spitOutMoreDebug)
+			fileInformation[atIndex++] = replaceWith.GetR();
+			fileInformation[atIndex++] = replaceWith.GetG();
+			fileInformation[atIndex++] = replaceWith.GetB();
+			hits++;
+			if (spitOutMoreDebug2)
 			{
-				std::string m = std::to_string(r) + std::to_string(g) + std::to_string(b);
-				log("Debug image info, what we pulled from color: " + m);
-				spitOutMoreDebug = false;
+				std::string m = std::to_string(replaceWith.GetR()) + std::to_string(replaceWith.GetG()) + std::to_string(replaceWith.GetB());
+				log("Debug image info, what we pulled from replaceWith: " + m);
+				spitOutMoreDebug2 = false;
 			}
 		}
 		if (i % width == 0)
@@ -205,6 +215,7 @@ void NormalizeBMP(std::string infile, std::string outfile, Color backgroundColor
 			}
 		}
 	}
+	log("Hits: " + std::to_string(hits) + " Skips: " + std::to_string(skips));
 	//alright, now we just gotta write our file information and it'll be all hunky dory, work the first time with no bugs ! ! !
 	bitmapOutFile.write((char*)&fileInformation[0], bitmapInfoHeader.biSizeImage);
 
@@ -228,13 +239,9 @@ int main()
 	std::string testIn = "inputimage.bmp";
 	std::string testOut = "outputimage.bmp";
 	Color bgColor;
-	bgColor.r = 255;
-	bgColor.g = 0;
-	bgColor.b = 255;
+	bgColor.Set(255, 0, 255);
 	Color normalizeColor;
-	normalizeColor.r = 255;
-	normalizeColor.g = 255;
-	normalizeColor.b = 255;
+	normalizeColor.Set(0, 0, 255);
 	//oh boy, this is either gona be sweet or it's gonna goto shit real quick lol
 	NormalizeBMP(testIn, testOut, bgColor, normalizeColor);
 
