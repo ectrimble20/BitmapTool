@@ -68,6 +68,11 @@ struct Color
 	}
 };
 
+void log(std::string msg)
+{
+	std::cout << msg + "\n";
+}
+
 
 void NormalizeBMP(std::string infile, std::string outfile, Color backgroundColor, Color replaceWith)
 {
@@ -75,7 +80,7 @@ void NormalizeBMP(std::string infile, std::string outfile, Color backgroundColor
 	//exit if we failed to open - TODO log this error
 	if (!bitmapFile)
 	{
-		std::cout << "Can't open the in-file :(" << std::endl;
+		log("Can't open the in-file :(");
 		return;
 	}
 	BITMAPFILEHEADER bitmapFileHeader;
@@ -86,17 +91,20 @@ void NormalizeBMP(std::string infile, std::string outfile, Color backgroundColor
 
 	if (bitmapInfoHeader.biBitCount != 24)
 	{
-		std::cout << "This application is only designed to work on 24-bit .bmp images, this image is not 24-bit" << std::endl;
+		log("This application is only designed to work on 24-bit .bmp images, this image is not 24-bit");
 	}
 	//setup our looping variables but check that the height isn't less than 0, if it is, we need to handle reversed situation
+	log("Normalizing " + infile + " to " + outfile);
 	int width = bitmapInfoHeader.biWidth;
 	int height = bitmapInfoHeader.biHeight;
+	log("File Dimensions: " + std::to_string(width) + " " + std::to_string(height));
 	int yStart = height - 1;
 	int yEnd = 0;
 	int deltaY = -1;
 	bool rowOrderRevered = false;
 	if (height < 0)
 	{
+		log("Notice: file is row reversed, compensating for this");
 		rowOrderRevered = true;
 		height = -height; //convert back to a positive number
 		yStart = 0;
@@ -110,6 +118,7 @@ void NormalizeBMP(std::string infile, std::string outfile, Color backgroundColor
 	//also handle padding if we need to
 	const int bitmapPadding = (4 - (width * 3) % 4) % 4;
 	//begin our loop and grab each bit
+	bool spitOutDebug = true;
 	for (yStart; yStart != yEnd; yStart += deltaY)
 	{
 		for (int x = 0; x < width; x++)
@@ -119,12 +128,23 @@ void NormalizeBMP(std::string infile, std::string outfile, Color backgroundColor
 			c.g = bitmapFile.get();
 			c.b = bitmapFile.get();
 			pColors[(yStart * width) + x] = c;
+			if (spitOutDebug) {
+				std::string m = "Debug, first color raw: " + std::to_string(c.r) + " " + std::to_string(c.g) + " " + std::to_string(c.b);
+				log(m);
+				spitOutDebug = false; //so we don't spam a million messages
+			}
 		}
 		//handle padding
 		bitmapFile.seekg(bitmapPadding, std::ios::cur);	
 	}
 	//alright, we have our bits, open up the outfile so we can copy the header information
 	std::ofstream bitmapOutFile(outfile, std::ios::binary);
+	if (!bitmapOutFile)
+	{
+		log("Failed to open outfile :(");
+		delete[] pColors;
+		return;
+	}
 	bitmapFile.seekg(std::ios::beg);
 	BYTE * headerInfo = new BYTE[bitmapInfoHeader.biBitCount];
 	for (int i = 0; i < bitmapInfoHeader.biBitCount; i++)
@@ -144,6 +164,7 @@ void NormalizeBMP(std::string infile, std::string outfile, Color backgroundColor
 	const char paddingByte = ' ';
 	BYTE * fileInformation = new BYTE[bitmapInfoHeader.biSizeImage];
 	int atIndex = 0;
+	bool spitOutMoreDebug = true;
 	for (int i = 0; i < endPoint; i++)
 	{
 		if (pColors[i] == backgroundColor)
@@ -154,6 +175,12 @@ void NormalizeBMP(std::string infile, std::string outfile, Color backgroundColor
 			fileInformation[atIndex++] = g;
 			char b = (char)pColors->b;
 			fileInformation[atIndex++] = b;
+			if (spitOutMoreDebug)
+			{
+				std::string m = std::to_string(r) + std::to_string(g) + std::to_string(b);
+				log("Debug image info, what we pulled from color: " + m);
+				spitOutMoreDebug = false;
+			}
 		}
 		else
 		{
@@ -163,6 +190,12 @@ void NormalizeBMP(std::string infile, std::string outfile, Color backgroundColor
 			fileInformation[atIndex++] = g;
 			char b = (char)replaceWith.b;
 			fileInformation[atIndex++] = b;
+			if (spitOutMoreDebug)
+			{
+				std::string m = std::to_string(r) + std::to_string(g) + std::to_string(b);
+				log("Debug image info, what we pulled from color: " + m);
+				spitOutMoreDebug = false;
+			}
 		}
 		if (i % width == 0)
 		{
@@ -179,6 +212,7 @@ void NormalizeBMP(std::string infile, std::string outfile, Color backgroundColor
 	bitmapOutFile.close();
 	delete[] pColors;
 	delete[] headerInfo;
+	log("Finished... maybe... idk");
 }
 
 
@@ -203,5 +237,10 @@ int main()
 	normalizeColor.b = 255;
 	//oh boy, this is either gona be sweet or it's gonna goto shit real quick lol
 	NormalizeBMP(testIn, testOut, bgColor, normalizeColor);
+
+	//so I can see if there's any output
+	std::cout << "Press Enter to Continue";
+	std::cin.ignore();
+
 	return 0;
 }
