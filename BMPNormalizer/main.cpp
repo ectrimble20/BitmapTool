@@ -183,13 +183,13 @@ void NormalizeBMP(std::string infile, std::string outfile, Color backgroundColor
 	{
 		if (pColors[i] == backgroundColor)
 		{
-			fileInformation[atIndex++] = pColors->GetR();
-			fileInformation[atIndex++] = pColors->GetG();
-			fileInformation[atIndex++] = pColors->GetB();
+			fileInformation[atIndex++] = pColors[i].GetR();
+			fileInformation[atIndex++] = pColors[i].GetG();
+			fileInformation[atIndex++] = pColors[i].GetB();
 			skips++;
 			if (spitOutMoreDebug)
 			{
-				std::string m = std::to_string(pColors->GetR()) + std::to_string(pColors->GetG()) + std::to_string(pColors->GetB());
+				std::string m = std::to_string(pColors[i].GetR()) + std::to_string(pColors[i].GetG()) + std::to_string(pColors[i].GetB());
 				log("Debug image info, what we pulled from pColors: " + m);
 				spitOutMoreDebug = false;
 			}
