@@ -48,6 +48,8 @@
 #include <ostream> //not sure if I need this or just fstream
 #include <string>
 
+typedef unsigned char BYTE;
+
 //0-255 color codes
 struct Color
 {
@@ -123,11 +125,14 @@ void NormalizeBMP(std::string infile, std::string outfile, Color backgroundColor
 	}
 	//alright, we have our bits, open up the outfile so we can copy the header information
 	std::ofstream bitmapOutFile(outfile, std::ios::binary);
+	bitmapFile.seekg(std::ios::beg);
+	BYTE * headerInfo = new BYTE[bitmapInfoHeader.biBitCount];
 	for (int i = 0; i < bitmapInfoHeader.biBitCount; i++)
 	{
 		bitmapFile.seekg(i);
-		bitmapOutFile << bitmapFile.get();
+		headerInfo[i] = bitmapFile.get();
 	}
+	bitmapOutFile.write((char*)&headerInfo[0], bitmapInfoHeader.biBitCount);
 	//alright, should have our header written... does a BMP need an end byte or something?
 	//beats me, I don't see anything about it on the interwebs so I'll assume not until it all fucks up
 	bitmapFile.close(); //close the handle, we're done with it.
@@ -136,24 +141,44 @@ void NormalizeBMP(std::string infile, std::string outfile, Color backgroundColor
 	//BUT what we want to do is Ignore the background color (e.g write it as is) and replace anything else with
 	//the replacement color to normalize the color.
 	const int endPoint = width * height;
+	const char paddingByte = ' ';
+	BYTE * fileInformation = new BYTE[bitmapInfoHeader.biSizeImage];
+	int atIndex = 0;
 	for (int i = 0; i < endPoint; i++)
 	{
 		if (pColors[i] == backgroundColor)
 		{
-			bitmapOutFile << pColors->r;
-			bitmapOutFile << pColors->g;
-			bitmapOutFile << pColors->b;
+			char r = (char)pColors->r;
+			fileInformation[atIndex++] = r;
+			char g = (char)pColors->g;
+			fileInformation[atIndex++] = g;
+			char b = (char)pColors->b;
+			fileInformation[atIndex++] = b;
 		}
 		else
 		{
-			bitmapOutFile << replaceWith.r;
-			bitmapOutFile << replaceWith.g;
-			bitmapOutFile << replaceWith.b;
+			char r = (char)replaceWith.r;
+			fileInformation[atIndex++] = r;
+			char g = (char)replaceWith.g;
+			fileInformation[atIndex++] = g;
+			char b = (char)replaceWith.b;
+			fileInformation[atIndex++] = b;
+		}
+		if (i % width == 0)
+		{
+			if (bitmapPadding > 0)
+			{
+				fileInformation[atIndex++] = paddingByte;
+			}
 		}
 	}
+	//alright, now we just gotta write our file information and it'll be all hunky dory, work the first time with no bugs ! ! !
+	bitmapOutFile.write((char*)&fileInformation[0], bitmapInfoHeader.biSizeImage);
+
 	//that should be it, we can clean up now
 	bitmapOutFile.close();
 	delete[] pColors;
+	delete[] headerInfo;
 }
 
 
