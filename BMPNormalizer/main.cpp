@@ -7,6 +7,7 @@ int main()
 {
 	//test code before I even attempt to do anything with user input
 	std::string testIn = "inputtesttwo.bmp";
+	//std::string testIn = "inputimage.bmp";
 	std::string testOut = "outputimage.bmp";
 
 	Color bgColor{ 255, 0, 255 };
