@@ -26,6 +26,8 @@ public:
 	void WriteNewBMP(std::string FilePath);
 	void ReplaceColor(const Color& colorToReplace, const Color& replaceWithColor);
 private:
+	bool AreTwoColorsEqual(const Color& lhs, const Color& rhs) const;
+
 	std::string lastErr = "";
 	BITMAPFILEHEADER bitmapFileHeader;
 	BITMAPINFOHEADER bitmapInfoHeader;

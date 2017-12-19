@@ -17,6 +17,9 @@ int main()
 		std::cout << f.GetLastError();
 		return 1; //exit with fail
 	}
+	//lets test color replacement, we'll replace the BG color with white
+	f.ReplaceColor(bgColor, normalizeColor);
+
 	f.WriteNewBMP(testOut);
 	if (!f.Good) {
 		std::cout << f.GetLastError();
