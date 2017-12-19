@@ -63,13 +63,16 @@ BitmapFile::BitmapFile(std::string FilePath)
 		}
 	}
 	//okay, should have the BMP loaded
-	inputFile.close();
+	inputFile.close(); //doesn't seem to like this, get an exception: Critical error detected c0000374
+	//debug, adding this so it has something to do after closing the file, this will tell me if it's after the constructor closes (this class is the problem)
+	//of if it's the file closing, which would mean the ifstream is causing the problem
+	int garbage = 0;
+	garbage += 1;
 }
 
 
 BitmapFile::~BitmapFile()
 {
-	delete[] pRaw;
 	delete[] pPixels;
 }
 
@@ -114,7 +117,7 @@ void BitmapFile::WriteNewBMP(std::string FilePath)
 			}
 		}
 	}
-	outputFile.close();
+	// outputFile.close(); removing this for now.
 }
 
 void BitmapFile::ReplaceColor(const Color & colorToReplace, const Color & replaceWithColor)

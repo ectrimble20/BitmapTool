@@ -12,7 +12,7 @@ public:
 	BitmapFile() = delete; //no default constructor for you!
 	BitmapFile(std::string FilePath);
 	bool Good = true;
-	~BitmapFile(); //we do need this though to delete stuffs
+	~BitmapFile();
 	bool Is32Bit() {
 		return bitmapInfoHeader.biBitCount == 32;
 	};
@@ -29,7 +29,6 @@ private:
 	std::string lastErr = "";
 	BITMAPFILEHEADER bitmapFileHeader;
 	BITMAPINFOHEADER bitmapInfoHeader;
-	unsigned char * pRaw; //the raw data itself
 	Color * pPixels; //raw data converted to our Color struct
 	//this gets set on load, if it's > 0, padding is required
 	int padding = 0;
