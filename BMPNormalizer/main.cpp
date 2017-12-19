@@ -184,28 +184,45 @@ void NormalizeBMP(std::string infile, std::string outfile, Color backgroundColor
 	//Okay, so now what we're going to do is loop through our Colors array and start spitting out our colors
 	//BUT what we want to do is Ignore the background color (e.g write it as is) and replace anything else with
 	//the replacement color to normalize the color.
-	const int endPoint = width * height;
+
+	//So what did I forget?!?
+	//derp derp, if we read the image in reversed and we write it back out guess what?  The image is upside down.
+	//lets try to resolve this
+
 	const char paddingByte = ' ';
-	BYTE * fileInformation = new BYTE[bitmapInfoHeader.biSizeImage];
-	for (int i = 0; i < endPoint; i++)
+	//reset our variables - this is kinda dumb but I'm just working through some issues
+	height = bitmapInfoHeader.biHeight;
+	yStart = height - 1;
+	yEnd = 0;
+	deltaY = -1;
+	if (height < 0)
 	{
-		ColorS insertColor(pColors[i].GetR(), pColors[i].GetG(), pColors[i].GetB());
-		if( pColors[i] != backgroundColor)
+		height = -height; //convert back to a positive number
+		yStart = 0;
+		yEnd = height;
+		deltaY = 1;
+	}
+
+	for (yStart; yStart != yEnd; yStart += deltaY)
+	{
+		for (int x = 0; x < width; x++)
 		{
-			insertColor.replaceColors(replaceWith.GetR(), replaceWith.GetG(), replaceWith.GetB());
-		}
-		bitmapOutFile.write((char*)&insertColor, sizeof(ColorS));
-		if (i % width == 0)
-		{
-			if (bitmapPadding > 0)
+			int i = (yStart * width) + x;
+			ColorS insertColor(pColors[i].GetR(), pColors[i].GetG(), pColors[i].GetB());
+			if (pColors[i] != backgroundColor)
 			{
-				bitmapOutFile.write((char*)&paddingByte, sizeof(char));
+				insertColor.replaceColors(replaceWith.GetR(), replaceWith.GetG(), replaceWith.GetB());
+			}
+			bitmapOutFile.write((char*)&insertColor, sizeof(ColorS));
+			if (i % width == 0)
+			{
+				if (bitmapPadding > 0)
+				{
+					bitmapOutFile.write((char*)&paddingByte, sizeof(char));
+				}
 			}
 		}
 	}
-	//alright, now we just gotta write our file information and it'll be all hunky dory, work the first time with no bugs ! ! !
-	//bitmapOutFile.write((char*)&fileInformation[0], bitmapInfoHeader.biSizeImage);
-
 	//that should be it, we can clean up now
 	bitmapOutFile.close();
 	delete[] pColors;
@@ -228,7 +245,7 @@ int main()
 	Color bgColor;
 	bgColor.Set(255, 0, 255);
 	Color normalizeColor;
-	normalizeColor.Set(0, 0, 255);
+	normalizeColor.Set(255, 255, 255);
 	//oh boy, this is either gona be sweet or it's gonna goto shit real quick lol
 	NormalizeBMP(testIn, testOut, bgColor, normalizeColor);
 
