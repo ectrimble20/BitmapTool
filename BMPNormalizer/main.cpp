@@ -81,6 +81,15 @@ struct Color
 	}
 };
 
+struct ColorS
+{
+	ColorS(unsigned char r, unsigned char g, unsigned char b) : r(r), g(g), b(b) {};
+	void replaceColors(unsigned char rr, unsigned char rg, unsigned char rb) { r = rr; g = rg; b = rb; };
+	unsigned char r;
+	unsigned char g;
+	unsigned char b;
+};
+
 void log(std::string msg)
 {
 	std::cout << msg + "\n";
@@ -156,14 +165,18 @@ void NormalizeBMP(std::string infile, std::string outfile, Color backgroundColor
 		delete[] pColors;
 		return;
 	}
-	bitmapFile.seekg(std::ios::beg);
-	BYTE * headerInfo = new BYTE[bitmapInfoHeader.biBitCount];
-	for (int i = 0; i < bitmapInfoHeader.biBitCount; i++)
-	{
-		bitmapFile.seekg(i);
-		headerInfo[i] = bitmapFile.get();
-	}
-	bitmapOutFile.write((char*)&headerInfo[0], bitmapInfoHeader.biBitCount);
+	//Think I'm doing this wrong
+	//bitmapFile.seekg(std::ios::beg);
+	//for (int i = 0; i < bitmapInfoHeader.biBitCount; i++)
+	//{
+	//	bitmapOutFile.write((char*)&bitmapFile.seekg(i),sizeof(char));
+	//}
+
+	//Lets write the shit we read in first right back into the new file rather than trying to be stupid and read it in byte by byte
+	bitmapOutFile.write((char*)&bitmapFileHeader, sizeof(BITMAPFILEHEADER));
+	bitmapOutFile.write((char*)&bitmapInfoHeader, sizeof(BITMAPINFOHEADER));
+
+
 	//alright, should have our header written... does a BMP need an end byte or something?
 	//beats me, I don't see anything about it on the interwebs so I'll assume not until it all fucks up
 	bitmapFile.close(); //close the handle, we're done with it.
@@ -174,55 +187,29 @@ void NormalizeBMP(std::string infile, std::string outfile, Color backgroundColor
 	const int endPoint = width * height;
 	const char paddingByte = ' ';
 	BYTE * fileInformation = new BYTE[bitmapInfoHeader.biSizeImage];
-	int atIndex = 0;
-	bool spitOutMoreDebug = true;
-	bool spitOutMoreDebug2 = true;
-	int skips = 0;
-	int hits = 0;
 	for (int i = 0; i < endPoint; i++)
 	{
-		if (pColors[i] == backgroundColor)
+		ColorS insertColor(pColors[i].GetR(), pColors[i].GetG(), pColors[i].GetB());
+		if( pColors[i] != backgroundColor)
 		{
-			fileInformation[atIndex++] = pColors[i].GetR();
-			fileInformation[atIndex++] = pColors[i].GetG();
-			fileInformation[atIndex++] = pColors[i].GetB();
-			skips++;
-			if (spitOutMoreDebug)
-			{
-				std::string m = std::to_string(pColors[i].GetR()) + std::to_string(pColors[i].GetG()) + std::to_string(pColors[i].GetB());
-				log("Debug image info, what we pulled from pColors: " + m);
-				spitOutMoreDebug = false;
-			}
+			insertColor.replaceColors(replaceWith.GetR(), replaceWith.GetG(), replaceWith.GetB());
 		}
-		else
-		{
-			fileInformation[atIndex++] = replaceWith.GetR();
-			fileInformation[atIndex++] = replaceWith.GetG();
-			fileInformation[atIndex++] = replaceWith.GetB();
-			hits++;
-			if (spitOutMoreDebug2)
-			{
-				std::string m = std::to_string(replaceWith.GetR()) + std::to_string(replaceWith.GetG()) + std::to_string(replaceWith.GetB());
-				log("Debug image info, what we pulled from replaceWith: " + m);
-				spitOutMoreDebug2 = false;
-			}
-		}
+		bitmapOutFile.write((char*)&insertColor, sizeof(ColorS));
 		if (i % width == 0)
 		{
 			if (bitmapPadding > 0)
 			{
-				fileInformation[atIndex++] = paddingByte;
+				bitmapOutFile.write((char*)&paddingByte, sizeof(char));
 			}
 		}
 	}
-	log("Hits: " + std::to_string(hits) + " Skips: " + std::to_string(skips));
 	//alright, now we just gotta write our file information and it'll be all hunky dory, work the first time with no bugs ! ! !
-	bitmapOutFile.write((char*)&fileInformation[0], bitmapInfoHeader.biSizeImage);
+	//bitmapOutFile.write((char*)&fileInformation[0], bitmapInfoHeader.biSizeImage);
 
 	//that should be it, we can clean up now
 	bitmapOutFile.close();
 	delete[] pColors;
-	delete[] headerInfo;
+	//delete[] headerInfo;
 	log("Finished... maybe... idk");
 }
 
